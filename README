@@ -1,1 +1,430 @@
-Hier könnten Ihre Lösungen stehen...
+# Rechnernetze – Übungsblatt 5
+
+## Aufgabe 1: SSH Setup
+
+Für die Anmeldung am Server habe ich eine SSH-Verbindung zu `2026s.ag-syssoft.org` aufgebaut. Dafür habe ich lokal in der Konsole folgenden Befehl verwendet:
+
+```bash
+ssh s4maabba@2026s.ag-syssoft.org
+```
+
+Beim ersten Verbindungsaufbau wurde der SSH-Host-Key des Servers angezeigt. Da die Serveradresse mit der im Übungsblatt angegebenen Adresse übereinstimmte, habe ich die Verbindung bestätigt.
+
+Nach der erfolgreichen Anmeldung habe ich, wie in der E-Mail mit den Zugangsdaten gefordert, das initiale Passwort direkt geändert. Dafür habe ich auf dem Server folgenden Befehl ausgeführt:
+
+```bash
+passwd
+```
+
+Die Änderung wurde vom System mit folgender Meldung bestätigt:
+
+```text
+passwd: password updated successfully
+```
+
+Anschließend habe ich überprüft, ob ich korrekt auf dem Server angemeldet bin. Dazu habe ich folgende Befehle verwendet:
+
+```bash
+whoami
+pwd
+hostname
+```
+
+Die Ausgaben waren:
+
+```text
+s4maabba
+/home/s4maabba
+2026s-cn
+```
+
+Die Ausgabe von `whoami` zeigt meinen Benutzernamen auf dem Server. Die Ausgabe von `pwd` zeigt, dass ich mich in meinem Home-Verzeichnis auf dem Server befinde. Die Ausgabe von `hostname` zeigt, dass die Anmeldung auf dem Server `2026s-cn` erfolgreich war.
+
+Zum Beenden der SSH-Sitzung habe ich folgenden Befehl verwendet:
+
+```bash
+exit
+```
+
+
+## Aufgabe 2: SSH Login mit Schlüsselpaar
+
+Um den Login mit Passwort durch einen Login mit einem SSH-Schlüsselpaar zu ersetzen, habe ich lokal auf meinem Rechner ein neues SSH-Keypair erstellt.
+
+Dafür habe ich folgenden Befehl verwendet:
+
+```bash
+ssh-keygen -t ed25519 -C "s4maabba@2026s"
+```
+
+Dabei wurden zwei Dateien erzeugt:
+
+```text
+C:\Users\HP\.ssh\id_ed25519
+C:\Users\HP\.ssh\id_ed25519.pub
+```
+
+Die Datei `id_ed25519` ist der private Schlüssel. Dieser bleibt ausschließlich auf meinem lokalen Rechner und darf nicht veröffentlicht werden. Die Datei `id_ed25519.pub` ist der öffentliche Schlüssel. Dieser darf auf dem Server hinterlegt werden.
+
+Anschließend habe ich den öffentlichen Schlüssel auf den Server kopiert und dort in die Datei `~/.ssh/authorized_keys` eingetragen. Dafür habe ich lokal folgenden Befehl verwendet:
+
+```powershell
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh s4maabba@2026s.ag-syssoft.org "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+```
+
+Danach habe ich erneut versucht, mich per SSH anzumelden:
+
+```bash
+ssh s4maabba@2026s.ag-syssoft.org
+```
+
+Im Unterschied zum vorherigen Login wurde nun kein Passwort mehr für den Server abgefragt. Die Anmeldung erfolgte stattdessen automatisch über das SSH-Schlüsselpaar.
+
+Zur Überprüfung habe ich nach der Anmeldung folgende Befehle ausgeführt:
+
+```bash
+whoami
+hostname
+```
+
+Die Ausgaben waren:
+
+```text
+s4maabba
+2026s-cn
+```
+
+Damit war der Login per SSH-Keypair erfolgreich eingerichtet.
+
+Der Login mit einem SSH-Schlüsselpaar ist sicherer als ein Login mit einem beliebigen Passwort, weil der private Schlüssel den lokalen Rechner nicht verlässt. Auf dem Server wird nur der öffentliche Schlüssel gespeichert. Aus dem öffentlichen Schlüssel kann der private Schlüssel praktisch nicht berechnet werden. Außerdem ist ein SSH-Schlüssel deutlich länger und zufälliger als ein normales menschliches Passwort und dadurch schwerer zu erraten oder durch einen Brute-Force-Angriff zu knacken.
+
+Zusätzlich wird das Server-Passwort beim normalen Login nicht mehr jedes Mal eingegeben. Dadurch sinkt das Risiko, dass das Passwort durch Beobachtung, Mitschneiden der Eingabe oder Phishing kompromittiert wird.
+
+Wichtig ist, dass der private Schlüssel geheim bleibt und nicht in das GitHub-Repository hochgeladen wird.
+
+## Aufgabe 3: SSH Basics und Nutzerberechtigungen
+
+### Aufgabe 3a
+
+Zuerst habe ich mich per SSH auf dem Server angemeldet:
+
+```bash
+ssh s4maabba@2026s.ag-syssoft.org
+```
+
+In meinem Benutzerverzeichnis habe ich anschließend die zwei Verzeichnisse `1` und `2` erstellt:
+
+```bash
+mkdir -p ~/1 ~/2
+```
+
+Zur Kontrolle habe ich die Verzeichnisse mit folgendem Befehl anzeigen lassen:
+
+```bash
+ls -ld ~/1 ~/2
+```
+
+Die Ausgabe war:
+
+```text
+drwxrwxr-x 2 s4maabba s4maabba 4096 Jun 25 17:04 /home/s4maabba/1
+drwxrwxr-x 2 s4maabba s4maabba 4096 Jun 25 17:04 /home/s4maabba/2
+```
+
+Danach habe ich die SSH-Sitzung beendet:
+
+```bash
+exit
+```
+
+### Aufgabe 3b
+
+Für diese Teilaufgabe habe ich lokal auf meinem Gerät eine kleine Textdatei erstellt. Dazu habe ich im IntelliJ-Terminal folgenden PowerShell-Befehl verwendet:
+
+```powershell
+"Das ist eine lokale Textdatei fuer Aufgabe 3b." | Set-Content -Encoding UTF8 lokale_datei.txt
+```
+
+Anschließend habe ich die Datei mit `scp` in das Verzeichnis `1` auf dem Server hochgeladen:
+
+```powershell
+scp .\lokale_datei.txt s4maabba@2026s.ag-syssoft.org:~/1/
+```
+
+Zur Kontrolle habe ich mir den Inhalt des Verzeichnisses `1` auf dem Server anzeigen lassen:
+
+```powershell
+ssh s4maabba@2026s.ag-syssoft.org "ls -l ~/1"
+```
+
+Die Ausgabe war:
+
+```text
+total 4
+-rw-rw-r-- 1 s4maabba s4maabba 51 Jun 25 17:05 lokale_datei.txt
+```
+
+Damit wurde die lokale Textdatei erfolgreich auf den Server in das Verzeichnis `1` übertragen.
+
+### Aufgabe 3c
+
+Anschließend habe ich mich erneut per SSH auf dem Server angemeldet:
+
+```bash
+ssh s4maabba@2026s.ag-syssoft.org
+```
+
+Dann bin ich in das Verzeichnis `2` gewechselt:
+
+```bash
+cd ~/2
+```
+
+Dort habe ich direkt auf dem Server ein kleines Shellscript erstellt:
+
+```bash
+cat > hello.sh
+```
+
+In die Datei habe ich folgenden Inhalt geschrieben:
+
+```bash
+#!/bin/bash
+echo "Hallo von Aufgabe 3"
+```
+
+Danach habe ich die Datei mit `ls -l` überprüft:
+
+```bash
+ls -l hello.sh
+```
+
+Die Ausgabe war zunächst:
+
+```text
+-rw-rw-r-- 1 s4maabba s4maabba 39 Jun 25 17:06 hello.sh
+```
+
+Anschließend habe ich versucht, das Script auszuführen:
+
+```bash
+./hello.sh
+```
+
+Die Ausgabe war:
+
+```text
+-bash: ./hello.sh: Permission denied
+```
+
+Das Script konnte zu diesem Zeitpunkt noch nicht ausgeführt werden, weil noch keine Ausführungsrechte gesetzt waren.
+
+### Aufgabe 3d
+
+Die Rechte des Scripts sollten so gesetzt werden, dass der Besitzer lesen, schreiben und ausführen darf, andere Gruppenmitglieder lesen und ausführen dürfen und andere Nutzer das Script nur ausführen dürfen.
+
+Dafür habe ich folgenden Befehl verwendet:
+
+```bash
+chmod 751 hello.sh
+```
+
+Die Zahl `751` bedeutet:
+
+```text
+7 = rwx für den Besitzer
+5 = r-x für die Gruppe
+1 = --x für andere Nutzer
+```
+
+Anschließend habe ich die gesetzten Berechtigungen mit `ls -l` überprüft:
+
+```bash
+ls -l hello.sh
+```
+
+Die Ausgabe war:
+
+```text
+-rwxr-x--x 1 s4maabba s4maabba 39 Jun 25 17:06 hello.sh
+```
+
+An den ersten zehn Zeichen des Listeneintrags erkennt man die Berechtigungen:
+
+```text
+-rwxr-x--x
+```
+
+Das erste Zeichen `-` zeigt, dass es sich um eine normale Datei handelt. Die nächsten drei Zeichen `rwx` zeigen, dass der Besitzer die Datei lesen, schreiben und ausführen darf. Die nächsten drei Zeichen `r-x` zeigen, dass Gruppenmitglieder die Datei lesen und ausführen dürfen, aber nicht schreiben dürfen. Die letzten drei Zeichen `--x` zeigen, dass andere Nutzer die Datei nur ausführen dürfen.
+
+Nach dem Setzen der Berechtigungen konnte ich das Script erfolgreich ausführen:
+
+```bash
+./hello.sh
+```
+
+Die Ausgabe war:
+
+```text
+Hallo von Aufgabe 3
+```
+
+Danach habe ich die SSH-Sitzung beendet:
+
+```bash
+exit
+```
+
+
+## Aufgabe 4: Dateidownload per SSH
+
+Für diese Aufgabe habe ich mich zunächst per SSH auf dem Server angemeldet:
+
+```bash
+ssh s4maabba@2026s.ag-syssoft.org
+```
+
+Anschließend habe ich in mein Home-Verzeichnis gewechselt und mit `pwd` überprüft, dass ich mich dort befinde:
+
+```bash
+cd ~
+pwd
+```
+
+Die Ausgabe war:
+
+```text
+/home/s4maabba
+```
+
+Danach habe ich zunächst versucht, die Datei direkt von `ordnungen.uni-trier.de` herunterzuladen:
+
+```bash
+wget -O FPO2020.pdf https://ordnungen.uni-trier.de/FPO_BSc_1F-HF-NF_Informatik_2020-07-27.pdf
+```
+
+Dabei wurde jedoch keine PDF-Datei heruntergeladen, sondern eine HTML-Seite. Das habe ich mit dem Befehl `file` überprüft:
+
+```bash
+file FPO2020.pdf
+```
+
+Die Ausgabe war:
+
+```text
+FPO2020.pdf: HTML document, Unicode text, UTF-8 text, with very long lines (399), with CRLF, LF line terminators
+```
+
+Da die heruntergeladene Datei keine PDF-Datei war, habe ich sie gelöscht:
+
+```bash
+rm FPO2020.pdf
+```
+
+Anschließend habe ich die Fachprüfungsordnung direkt über die tatsächliche PDF-Adresse heruntergeladen und unter dem Namen `FPO2020.pdf` in meinem Home-Verzeichnis gespeichert:
+
+```bash
+wget -O FPO2020.pdf https://www.uni-trier.de/fileadmin/fb4/INF/BA_MA/FPO_BSc_1F-HF-NF_Informatik_2020-07-27.pdf
+```
+
+Der Download wurde erfolgreich abgeschlossen. Die Ausgabe enthielt unter anderem:
+
+```text
+Length: 107056 (105K) [application/pdf]
+Saving to: ‘FPO2020.pdf’
+```
+
+Zur Kontrolle habe ich geprüft, ob die Datei im Home-Verzeichnis vorhanden ist:
+
+```bash
+ls -l FPO2020.pdf
+```
+
+Die Ausgabe war:
+
+```text
+-rw-rw-r-- 1 s4maabba s4maabba 107056 Oct  9  2020 FPO2020.pdf
+```
+
+Zusätzlich habe ich mit `file` überprüft, dass es sich nun tatsächlich um ein PDF-Dokument handelt:
+
+```bash
+file FPO2020.pdf
+```
+
+Die Ausgabe war:
+
+```text
+FPO2020.pdf: PDF document, version 1.6 (zip deflate encoded)
+```
+
+Damit wurde die Datei direkt auf dem Server heruntergeladen und als `FPO2020.pdf` in meinem Home-Verzeichnis gespeichert. Für diese Aufgabe wurde `scp` nicht verwendet.
+
+Zum Schluss habe ich die SSH-Sitzung beendet:
+
+```bash
+exit
+```
+
+
+## Aufgabe 5: SSH Portweiterleitung (Tunneling)
+
+Für diese Aufgabe sollte ein Webserver, der auf dem Server auf Port `3000` läuft, lokal auf meinem Gerät unter `localhost:8080` erreichbar gemacht werden. Da der Webserver nur vom Server selbst erreichbar ist, habe ich eine SSH-Verbindung mit lokaler Portweiterleitung verwendet.
+
+Dafür habe ich lokal im IntelliJ-Terminal folgenden Befehl ausgeführt:
+
+```bash
+ssh -L 8080:localhost:3000 s4maabba@2026s.ag-syssoft.org
+```
+
+Die Option `-L` aktiviert die lokale Portweiterleitung. Der Ausdruck
+
+```text
+8080:localhost:3000
+```
+
+bedeutet, dass Verbindungen zu `localhost:8080` auf meinem lokalen Rechner durch den SSH-Tunnel an `localhost:3000` aus Sicht des Servers weitergeleitet werden.
+
+Nachdem die SSH-Verbindung aufgebaut war, habe ich im Browser auf meinem lokalen Gerät folgende Adresse geöffnet:
+
+```text
+http://localhost:8080
+```
+
+Im Browser wurde die folgende Seite angezeigt:
+
+```text
+Willkommen zur SSH Tunneling Uebung
+
+Wenn du das siehst, funktioniert der Tunnel!
+```
+
+Damit war der Webserver, der auf dem Server auf Port `3000` läuft, erfolgreich über `localhost:8080` auf meinem lokalen Gerät erreichbar.
+
+Der Datenfluss ist dabei folgender:
+
+```text
+Browser auf meinem Rechner
+→ localhost:8080 auf meinem Rechner
+→ SSH-Tunnel
+→ localhost:3000 auf dem Server
+→ Webserver auf dem Server
+```
+
+Die Antwort des Webservers läuft anschließend denselben Weg zurück:
+
+```text
+Webserver auf dem Server
+→ localhost:3000 auf dem Server
+→ SSH-Tunnel
+→ localhost:8080 auf meinem Rechner
+→ Browser auf meinem Rechner
+```
+
+Ohne die SSH-Portweiterleitung wäre der Webserver nicht direkt im Browser erreichbar, da Port `3000` nur vom Server selbst aus erreichbar ist. Durch den SSH-Tunnel kann mein lokaler Browser den Dienst trotzdem erreichen, ohne dass der Webserver öffentlich freigegeben werden muss.
+
+Zum Beenden der Portweiterleitung habe ich die SSH-Sitzung beendet:
+
+```bash
+exit
+```
